@@ -1,6 +1,14 @@
 const WebSocket = require('ws');
+const http = require('http');
 
-const wss = new WebSocket.Server({ port: process.env.PORT, maxConnections: 50 });
+// HTTP sunucu oluşturuluyor
+const server = http.createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('WebSocket sunucu çalışıyor');
+});
+
+// WebSocket server'ı HTTP sunucusuyla bağla
+const wss = new WebSocket.Server({ server });
 
 let clients = [];
 
@@ -13,7 +21,6 @@ wss.on('connection', (ws) => {
         const decodedMessage = message.toString('utf8');
         console.log('Mesaj alındı: ', decodedMessage);
 
-        // Tüm bağlı client'lara mesaj gönder
         clients.forEach(client => {
             if (client !== ws && client.readyState === WebSocket.OPEN) {
                 client.send(decodedMessage);
@@ -22,10 +29,12 @@ wss.on('connection', (ws) => {
     });
 
     ws.on('close', () => {
-        // Bağlantıyı kapatan client'ı listeden çıkar
         clients = clients.filter(client => client !== ws);
         console.log('Cihaz bağlantıyı kapattı');
     });
 });
 
-console.log(`WebSocket sunucu çalışıyor... Port: ${process.env.PORT}`);
+// Sunucu Heroku'nun portunu dinleyecek
+server.listen(process.env.PORT || 8080, () => {
+    console.log(`WebSocket sunucu çalışıyor... Port: ${process.env.PORT || 8080}`);
+});
